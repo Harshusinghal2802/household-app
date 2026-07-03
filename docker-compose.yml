@@ -1,0 +1,54 @@
+version: '3.9'
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: doodh-mongo
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: doodh-ledger
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - doodh-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: doodh-backend
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGO_URI: mongodb://mongo:27017/doodh-ledger
+      JWT_SECRET: ${JWT_SECRET:-change_me_in_production_please_use_32chars}
+      JWT_EXPIRE: 7d
+      JWT_COOKIE_EXPIRE: 7
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongo
+    networks:
+      - doodh-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: doodh-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - doodh-net
+
+volumes:
+  mongo_data:
+
+networks:
+  doodh-net:
+    driver: bridge
